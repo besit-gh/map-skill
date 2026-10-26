@@ -137,32 +137,45 @@ const domains = [
 ];
 const nodes=[],edges=[],clusters=[];
 const cx=1300,cy=1100;
-const clusterAngles=[-150,-120,-90,-60,-30,0,30,60,90,120,150,180];
-const radius=790;
+// The tree follows one continuous campaign route, laid out as a readable serpentine path.
+const stageCells=[
+ {x:430,y:1880},{x:1300,y:1880},{x:2170,y:1880},
+ {x:2170,y:1320},{x:1300,y:1320},{x:430,y:1320},
+ {x:430,y:760},{x:1300,y:760},{x:2170,y:760},
+ {x:2170,y:250},{x:1300,y:250},{x:430,y:250}
+];
 domains.forEach((d,di)=>{
- const angle=(clusterAngles[di]??di*30)*Math.PI/180;
- const ccx=cx+Math.cos(angle)*radius, ccy=cy+Math.sin(angle)*radius;
- const cluster={id:d.id,title:d.title,sub:d.sub,color:d.color,x:ccx,y:ccy,angle};clusters.push(cluster);
+ const cell=stageCells[di]||{x:1300,y:1100};
+ const cluster={id:d.id,title:d.title,sub:d.sub,color:d.color,x:cell.x,y:cell.y,angle:0};clusters.push(cluster);
  const count=d.nodes.length;
- const ringR= count>=12?126:116;
+ const left=cell.x-340, right=cell.x+340, top=cell.y-105, bottom=cell.y+105;
+ const topCount=Math.ceil(count/2), bottomCount=count-topCount;
  d.nodes.forEach((raw,i)=>{
    const [id,name,type,desc,tag]=raw;
-   const a=(-Math.PI/2)+(i/count)*Math.PI*2;
-   const rr=ringR+(i%3===0?12:0);
-   const x=ccx+Math.cos(a)*rr,y=ccy+Math.sin(a)*rr;
+   let x,y;
+   if(i<topCount){
+     x=topCount===1?cell.x:left+i*((right-left)/(topCount-1));
+     y=top;
+   }else{
+     const j=i-topCount;
+     x=bottomCount===1?cell.x:right-j*((right-left)/(bottomCount-1));
+     y=bottom;
+   }
    nodes.push({id,name,type,desc,tag,domain:d.id,color:d.color,x,y,order:i,requires:[]});
    if(i>0)edges.push({from:d.nodes[i-1][0],to:id,type:'path'});
  });
- // Connect first ordinary node to central hub and final progression into central path
- edges.push({from:'core',to:d.nodes[0][0],type:'path'});
- // ring spine creates branching route with a few cross-links for a skill-tree feel
- if(count>4){for(let i=0;i<count-2;i+=3)edges.push({from:d.nodes[i][0],to:d.nodes[i+2][0],type:'branch'});}
- if(count>8)edges.push({from:d.nodes[2][0],to:d.nodes[6][0],type:'branch'});
+ // Each mastery node unlocks the next stage, forming a single continuous campaign.
+ if(di===0)edges.push({from:'core',to:d.nodes[0][0],type:'path'});
+ if(di>0)edges.push({from:domains[di-1].nodes[domains[di-1].nodes.length-1][0],to:d.nodes[0][0],type:'path'});
 });
-nodes.push({id:'core',name:'Ядро DevOps',type:'core',desc:'Стартовая точка. Изучай основы и выбирай путь через системное администрирование, сети, разработку, автоматизацию и production-инженерию.',tag:'Старт',domain:'core',color:'#e6c47d',x:cx,y:cy,order:0,requires:[]});
-// Link related cross-specialties explicitly. Edges are concrete learning prerequisites, not decoration.
+nodes.push({id:'core',name:'Ядро DevOps',type:'core',desc:'Стартовая точка кампании. Освой основы, пройди последовательные этапы и постепенно открой путь к production-инженерии.',tag:'Старт',domain:'core',color:'#e6c47d',x:90,y:2020,order:0,requires:[]});
+// A few optional links connect relevant specializations without turning the whole map into a web.
 const cross=[
-['shell','bash'],['processes','systemd'],['journald','logs'],['ssh','ssh-hardening'],['routing','container-network'],['dns','service'],['http','proxy'],['tls','tls-sec'],['git-branch','pipeline'],['git-flow','delivery-key'],['python-cli','idempotent'],['json-yaml','templates'],['testing','ci-test'],['build','dockerfile'],['artifact','registry'],['delivery-key','container-key'],['container-network','pod'],['compose','pod'],['rbac','least-privilege'],['network-policy','firewall'],['terraform-provider','vpc'],['iac-key','cloud-key'],['prometheus','metrics'],['alerts','incident'],['obs-key','rca'],['error-budget','reliability-key'],['secret-store','secrets-ci'],['image-scan','release-gates'],['restore','rpo-rto'],['postmortem','platform'],['k8s-debug','sre-master'],['cloud-lb','balance'],['modules','iac-key'],['net-debug','k8s-debug'],['linux-debug','incident'],['git-recovery','rollback'],['automation-master','iac-key'],['security-key','delivery-key']
+['shell','bash'],['processes','systemd'],['journald','logs'],['ssh','ssh-hardening'],
+['http','proxy'],['tls','tls-sec'],['git-branch','pipeline'],['python-cli','idempotent'],
+['testing','ci-test'],['build','dockerfile'],['container-network','pod'],
+['terraform-provider','vpc'],['prometheus','metrics'],['alerts','incident'],
+['secret-store','secrets-ci'],['restore','rpo-rto']
 ];
 cross.forEach(([from,to])=>{if(nodes.some(n=>n.id===from)&&nodes.some(n=>n.id===to))edges.push({from,to,type:'cross'});});
 const nodeById=Object.fromEntries(nodes.map(n=>[n.id,n]));
@@ -177,12 +190,11 @@ function el(tag,attrs={},text){const e=document.createElementNS(NS,tag);Object.e
 function svgTextLines(parent,x,y,text,cls){const t=el('text',{x,y,class:cls},text);parent.appendChild(t);return t}
 function render(){
  world.replaceChildren();
- const bg=el('circle',{cx,cy,r:590,fill:'none',stroke:'#202b40','stroke-width':1,'stroke-dasharray':'2 12'});world.appendChild(bg);
- clusters.forEach(c=>{
-  world.appendChild(el('circle',{cx:c.x,cy:c.y,r:160,class:'cluster-ring',stroke:c.color,opacity:.8}));
-  world.appendChild(el('circle',{cx:c.x,cy:c.y,r:148,fill:'none',stroke:c.color,'stroke-width':.6,opacity:.35}));
-  svgTextLines(world,c.x,c.y-175,c.title,'cluster-title').setAttribute('fill',c.color);
-  svgTextLines(world,c.x,c.y-156,c.sub,'cluster-sub');
+ // Subtle chapter panels organize the route into sequential acts, not isolated islands.
+ clusters.forEach((c,i)=>{
+  world.appendChild(el('rect',{x:c.x-375,y:c.y-150,width:750,height:300,rx:18,fill:'#10182755',stroke:c.color,'stroke-opacity':'.25','stroke-width':1}));
+  svgTextLines(world,c.x,c.y-118,String(i+1).padStart(2,'0')+' · '+c.title,'cluster-title').setAttribute('fill',c.color);
+  svgTextLines(world,c.x,c.y-96,c.sub,'cluster-sub');
  });
  const edgeLayer=el('g',{id:'edges'}),nodeLayer=el('g',{id:'nodes'});
  edges.forEach(e=>{
@@ -281,14 +293,14 @@ function fitView(){
  // SVG already scales its 2600x2200 viewBox to the viewport.
  // Keep pan/zoom in SVG user units; multiplying by CSS pixel dimensions here
  // caused a second scale and pushed the map out of view on some screens.
- zoom=.94;panX=(2600-2600*zoom)/2;panY=(2200-2200*zoom)/2;applyTransform();
+ zoom=.72;panX=(2600-2600*zoom)/2;panY=(2200-2200*zoom)/2;applyTransform();
 }
 function applyTransform(){world.setAttribute('transform','translate('+panX+' '+panY+') scale('+zoom+')');}
-function focusNode(n){zoom=Math.max(zoom,1.15);panX=1300-n.x*zoom;panY=1100-n.y*zoom;applyTransform();}
+function focusNode(n){zoom=Math.max(zoom,1.05);panX=1300-n.x*zoom;panY=1100-n.y*zoom;applyTransform();}
 function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>t.classList.remove('show'),2200);}
 document.getElementById('zoomIn').onclick=()=>{zoom=Math.min(2.5,zoom*1.18);applyTransform()};
 document.getElementById('zoomOut').onclick=()=>{zoom=Math.max(.22,zoom/1.18);applyTransform()};
-document.getElementById('centerView').onclick=()=>{panX=1300-cx*zoom;panY=1100-cy*zoom;applyTransform()};
+document.getElementById('centerView').onclick=()=>{fitView()};
 document.getElementById('resetView').onclick=fitView;
 document.getElementById('resetBuild').onclick=()=>{allocated=new Set(['core']);try{localStorage.removeItem(STORAGE)}catch{}updateStates();selectNode('core');showToast('Билд сброшен.')};
 document.getElementById('startPath').onclick=()=>{const n=nodes.find(n=>n.id!=='core'&&edges.some(e=>e.to===n.id&&allocated.has(e.from)));if(n){selectNode(n.id);focusNode(n)}else showToast('Выбери любую стартовую ветку на карте.')};
