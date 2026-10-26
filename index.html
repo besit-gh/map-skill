@@ -148,7 +148,7 @@ domains.forEach((d,di)=>{
  const cell=stageCells[di]||{x:1300,y:1100};
  const cluster={id:d.id,title:d.title,sub:d.sub,color:d.color,x:cell.x,y:cell.y,angle:0};clusters.push(cluster);
  const count=d.nodes.length;
- const left=cell.x-340, right=cell.x+340, top=cell.y-105, bottom=cell.y+105;
+ const left=cell.x-340, right=cell.x+340, top=cell.y-42, bottom=cell.y+82;
  const topCount=Math.ceil(count/2), bottomCount=count-topCount;
  d.nodes.forEach((raw,i)=>{
    const [id,name,type,desc,tag]=raw;
