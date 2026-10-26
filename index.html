@@ -1,0 +1,306 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#080b12">
+<title>Path of DevOps — Древо талантов</title>
+<style>
+:root{color-scheme:dark;--bg:#080b12;--panel:#111722;--line:#293449;--text:#e8edf7;--muted:#8c9bb2;--gold:#d7a957;--blue:#70baff;--green:#7dd8a4;--violet:#c19aff;--red:#ff8888}
+*{box-sizing:border-box}html,body{margin:0;height:100%;overflow:hidden;background:var(--bg);color:var(--text);font:14px/1.4 Inter,ui-sans-serif,system-ui,-apple-system,Segoe UI,sans-serif}
+body{background:radial-gradient(ellipse at 50% 45%,#152036 0,#0a101b 45%,#06080d 100%)}
+button,input{font:inherit}button{color:inherit;background:#172131;border:1px solid #35445b;border-radius:7px;padding:8px 10px;cursor:pointer}button:hover{border-color:#8ca6c7;background:#202d41}button:focus-visible,input:focus-visible{outline:2px solid #8dc8ff;outline-offset:2px}
+#app{height:100%;display:grid;grid-template-rows:62px 1fr}
+header{display:flex;align-items:center;gap:14px;padding:10px 16px;border-bottom:1px solid #273247;background:#090e17eF;z-index:5}
+.brand{display:flex;align-items:center;gap:11px;min-width:250px}.sigil{width:38px;height:38px;border:1px solid #9b783d;border-radius:50%;display:grid;place-items:center;color:#ffdf9c;font-size:21px;background:radial-gradient(circle,#4b3920,#14151a 70%);box-shadow:0 0 18px #b8863430}
+.brand h1{font:700 16px/1.1 Georgia,serif;letter-spacing:2px;margin:0;color:#f4dca7}.brand small{display:block;color:#94a2b8;letter-spacing:2.2px;font-size:9px;margin-top:5px}
+.topstat{font-size:11px;color:#a9b7ca;white-space:nowrap}.topstat b{color:#f4dca7;font-size:14px}.spacer{flex:1}.search{width:min(290px,28vw);background:#0c121d;color:#e8edf7;border:1px solid #303d53;border-radius:7px;padding:9px 12px}.toolrow{display:flex;gap:6px}
+main{min-height:0;display:grid;grid-template-columns:minmax(0,1fr) 320px;position:relative}
+#viewport{position:relative;overflow:hidden;cursor:grab;touch-action:none;background-image:radial-gradient(#53617a20 1px,transparent 1px);background-size:22px 22px}
+#viewport.dragging{cursor:grabbing}#tree{width:100%;height:100%;display:block;user-select:none}
+#mapworld{transform-origin:0 0}
+.edge{fill:none;stroke:#46516a;stroke-width:2;opacity:.75;vector-effect:non-scaling-stroke}
+.edge.major{stroke:#9c7a42;stroke-width:2.5}.edge.cross{stroke:#6d7f9e;stroke-dasharray:5 6;opacity:.58}
+.edge.unlocked{stroke:#f4ce83;opacity:1;filter:drop-shadow(0 0 3px #d6a65380)}
+.cluster-ring{fill:#10172544;stroke:#3b4b66;stroke-width:1.5;stroke-dasharray:3 9;vector-effect:non-scaling-stroke}
+.cluster-title{font:700 17px Georgia,serif;letter-spacing:2px;fill:#d9e2f0;text-anchor:middle;paint-order:stroke;stroke:#080b12;stroke-width:5px;stroke-linejoin:round}
+.cluster-sub{font:10px ui-sans-serif,system-ui;letter-spacing:1px;fill:#8292ac;text-anchor:middle;paint-order:stroke;stroke:#080b12;stroke-width:4px}
+.node{cursor:pointer;outline:none}.node .halo{fill:none;stroke-width:1;opacity:.18}.node .orb{fill:#101a2a;stroke:#7590b4;stroke-width:2}.node .core{fill:#a7bfdc;opacity:.8}.node text{font:9px ui-sans-serif,system-ui;fill:#dce5f3;text-anchor:middle;paint-order:stroke;stroke:#080b12;stroke-width:3px;stroke-linejoin:round;pointer-events:none}
+.node .glyph{font:12px ui-sans-serif,system-ui;font-weight:700;fill:#f0d9a4;stroke:none}
+.node.ordinary .orb{stroke:#83a7ce}.node.key .orb{stroke:#e3b75f;stroke-width:2.5}.node.master .orb{stroke:#d49bff;stroke-width:3}.node.master .core{fill:#d7a3ff}
+.node.allocated .orb{fill:#4c3a1d;stroke:#ffe3a0;filter:drop-shadow(0 0 5px #e4b65d)}.node.available .orb{stroke:#b7e6ff;filter:drop-shadow(0 0 5px #65baff)}.node.locked{opacity:.53}.node.selected .halo{opacity:1;stroke:#fff4c6;filter:drop-shadow(0 0 7px #fff0a0)}.node.selected .orb{stroke:#fff1b5;stroke-width:3}
+.node.filtered{opacity:.09;pointer-events:none}.node text.label{font-size:10px;opacity:.86}.node.master text.label{font-size:11px;font-weight:700}
+#hud{position:absolute;left:14px;top:14px;display:flex;gap:8px;align-items:center;pointer-events:none}.pill{background:#0b111bdc;border:1px solid #34445e;padding:7px 10px;border-radius:6px;color:#aab8cc;font-size:11px;backdrop-filter:blur(6px)}.pill strong{color:#f0d59e}
+#mapcontrols{position:absolute;bottom:14px;left:14px;display:flex;gap:6px}.maphelp{position:absolute;bottom:18px;left:50%;transform:translateX(-50%);color:#77869d;font-size:11px;white-space:nowrap;pointer-events:none}
+#legend{position:absolute;top:14px;right:14px;width:188px;background:#0b111be8;border:1px solid #34435b;border-radius:8px;padding:12px;box-shadow:0 10px 30px #0005;pointer-events:none}.legendtitle{font:700 12px Georgia,serif;letter-spacing:1.6px;color:#ecd8ae;margin-bottom:9px}.legendrow{display:flex;align-items:center;gap:9px;color:#aab8cc;font-size:11px;margin:8px 0}.sample{width:18px;height:18px;display:inline-grid;place-items:center;flex:none;border-radius:50%;background:#111c2d;border:2px solid #83a7ce}.sample.key{width:22px;height:22px;border:3px double #e3b75f}.sample.master{width:26px;height:26px;border:3px solid #d49bff;box-shadow:0 0 9px #b87bff50}.sample.line{height:0;width:22px;border:0;border-top:2px solid #e3b75f;border-radius:0;background:none}.sample.dash{height:0;width:22px;border:0;border-top:2px dashed #8b9db9;border-radius:0;background:none}
+aside{background:linear-gradient(180deg,#101722,#0b1018);border-left:1px solid #2b374b;overflow:auto;padding:17px 16px 24px;z-index:2}
+.eyebrow{font-size:10px;letter-spacing:2px;text-transform:uppercase;color:#9caec7}.side-title{font:700 21px/1.15 Georgia,serif;color:#f0d9a6;margin:8px 0 6px}.muted{color:#91a0b6;font-size:12px}.divider{height:1px;background:#283448;margin:15px 0}.tagrow{display:flex;gap:6px;flex-wrap:wrap;margin:10px 0}.tag{font-size:10px;padding:4px 7px;border:1px solid #3b4b62;border-radius:4px;color:#b9c8dc}.tag.gold{border-color:#806438;color:#f2cf85}.tag.purple{border-color:#77558f;color:#d6b4ff}
+.section-title{font-size:10px;letter-spacing:1.7px;color:#8495ad;margin:15px 0 7px}.bodycopy{color:#c7d1e0;font-size:12px;line-height:1.65}.req{padding:9px 10px;background:#141e2d;border:1px solid #29384d;border-radius:6px;margin:6px 0;font-size:11px;color:#bdc9da}.req.ok{border-color:#446f5a;color:#8cddb0}.req.block{border-color:#6a4848;color:#e5a3a3}.side-actions{display:flex;gap:7px;margin-top:12px}.side-actions button{flex:1;font-size:11px}.primary{background:#49381e;border-color:#94713b;color:#ffdfa0}.primary:hover{background:#614822}.danger{color:#f0a2a2}
+#progress{height:5px;border-radius:4px;background:#263247;overflow:hidden;margin-top:8px}#progress>i{display:block;height:100%;width:0;background:linear-gradient(90deg,#b58b43,#ffe3a1);transition:width .2s}
+#toast{position:absolute;bottom:60px;left:50%;transform:translateX(-50%);background:#101927;border:1px solid #52647f;padding:9px 13px;border-radius:7px;color:#e7edf7;font-size:12px;opacity:0;pointer-events:none;transition:opacity .2s}#toast.show{opacity:1}
+@media(max-width:950px){main{grid-template-columns:minmax(0,1fr) 285px}.brand{min-width:auto}.brand small,.topstat{display:none}#legend{display:none}.maphelp{display:none}}
+@media(max-width:680px){#app{grid-template-rows:54px 1fr}header{padding:7px 9px;gap:8px}.brand h1{font-size:13px}.sigil{width:32px;height:32px}.search{width:34vw;padding:7px}.toolrow button{padding:7px;font-size:11px}main{grid-template-columns:1fr;grid-template-rows:minmax(0,1fr) 245px}aside{border-left:0;border-top:1px solid #2b374b;padding:12px 14px}.side-title{font-size:18px}.side-actions{margin-top:8px}.divider{margin:9px 0}#hud{top:8px;left:8px}.pill{padding:5px 7px;font-size:10px}#mapcontrols{left:8px;bottom:8px}#mapcontrols button{padding:7px}.node text.label{font-size:11px}}
+</style>
+</head>
+<body>
+<div id="app">
+<header>
+  <div class="brand"><div class="sigil">✦</div><div><h1>PATH OF DEVOPS</h1><small>PASSIVE SKILL ATLAS</small></div></div>
+  <div class="topstat">УЗЛОВ <b id="nodeCount">—</b></div>
+  <div class="topstat">ОЧКИ <b id="pointCount">0</b></div>
+  <div class="topstat">ОТКРЫТО <b id="openCount">1</b></div>
+  <div class="spacer"></div>
+  <input id="search" class="search" type="search" placeholder="Найти талант…" aria-label="Найти талант">
+  <div class="toolrow"><button id="resetView" title="Вписать дерево в экран">Вписать</button><button id="resetBuild" title="Сбросить распределение очков">Сброс</button></div>
+</header>
+<main>
+<section id="viewport" aria-label="Интерактивное дерево талантов">
+  <svg id="tree" viewBox="0 0 1800 1400" role="img" aria-label="Дерево пассивных навыков DevOps">
+    <defs>
+      <radialGradient id="bgGlow"><stop offset="0" stop-color="#26364f" stop-opacity=".72"/><stop offset="1" stop-color="#080b12" stop-opacity="0"/></radialGradient>
+      <filter id="glow"><feGaussianBlur stdDeviation="3" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+      <pattern id="stars" width="97" height="83" patternUnits="userSpaceOnUse"><circle cx="12" cy="18" r="1" fill="#8da3c4" opacity=".23"/><circle cx="65" cy="49" r=".8" fill="#d9c08c" opacity=".2"/><circle cx="88" cy="8" r=".7" fill="#fff" opacity=".2"/></pattern>
+    </defs>
+    <rect width="1800" height="1400" fill="url(#bgGlow)"/><rect width="1800" height="1400" fill="url(#stars)"/>
+    <g id="mapworld"></g>
+  </svg>
+  <div id="hud"><div class="pill">Пассивные очки: <strong id="hudPoints">0</strong></div><div class="pill">Выбрано: <strong id="hudSelected">Ядро DevOps</strong></div></div>
+  <div id="legend">
+    <div class="legendtitle">ЛЕГЕНДА АТЛАСА</div>
+    <div class="legendrow"><span class="sample"></span><span>Обычный навык</span></div>
+    <div class="legendrow"><span class="sample key"></span><span>Ключевой талант</span></div>
+    <div class="legendrow"><span class="sample master"></span><span>Мастерский талант</span></div>
+    <div class="legendrow"><span class="sample line"></span><span>Путь / зависимость</span></div>
+    <div class="legendrow"><span class="sample dash"></span><span>Связь между ветками</span></div>
+    <div class="divider"></div>
+    <div class="legendrow"><span style="color:#ffe3a1;font-size:17px">✦</span><span>Распределённый талант</span></div>
+    <div class="legendrow"><span style="color:#b7e6ff;font-size:17px">○</span><span>Доступен для изучения</span></div>
+    <div class="legendrow"><span style="color:#64738b;font-size:17px">○</span><span>Пока заблокирован</span></div>
+  </div>
+  <div id="mapcontrols"><button id="zoomOut" aria-label="Уменьшить">−</button><button id="zoomIn" aria-label="Увеличить">＋</button><button id="centerView">⌖ Центр</button></div>
+  <div class="maphelp">Перетаскивай карту · колёсико — масштаб · нажми на узел, чтобы изучить талант</div>
+  <div id="toast" role="status"></div>
+</section>
+<aside id="details" aria-live="polite">
+  <div class="eyebrow">ПАССИВНЫЙ АТЛАС · DEVOPS</div>
+  <div class="side-title">Ядро DevOps</div>
+  <div class="muted">Начало пути · базовый узел</div>
+  <div class="tagrow"><span class="tag gold">Стартовый узел</span><span class="tag">Уровень 0</span></div>
+  <p class="bodycopy">Выбери направление и собери собственный маршрут от основ системного администрирования к инженерии production-платформ. Каждый узел — конкретное знание или проверяемое умение.</p>
+  <div class="divider"></div><div class="section-title">ПРОГРЕСС ПЕРСОНАЖА</div>
+  <div class="bodycopy"><span id="progressText">1 из 121 талантов распределён</span><div id="progress"><i></i></div></div>
+  <div class="section-title">КАК ИГРАТЬ</div>
+  <div class="bodycopy">1. Нажми на подсвеченный узел рядом с уже изученными талантами.<br>2. Прочитай эффект и требования.<br>3. Распределяй очки, соединяя непрерывный путь.<br>4. Выбирай собственную специализацию. Прогресс сохраняется в этом браузере.</div>
+  <div class="side-actions"><button id="startPath" class="primary">Показать ближайшие таланты</button></div>
+</aside>
+</main>
+</div>
+<script>
+/* Each node is a concrete competency. Layout is deterministic; all edges are explicit. */
+const domains = [
+{id:'linux',title:'LINUX & SYSTEMS',sub:'СИСТЕМНОЕ АДМИНИСТРИРОВАНИЕ',color:'#bd91ff',angle:0,nodes:[
+['shell','Терминал и shell','ordinary','Осознанно работать в CLI, читать приглашение shell и запускать команды.','База'],['paths','Пути и навигация','ordinary','Использовать абсолютные и относительные пути; понимать pwd, cd и структуру каталогов.','База'],['files','Файловые операции','ordinary','Создавать, копировать, перемещать и удалять файлы без случайной потери данных.','База'],['search','Поиск и фильтрация','ordinary','Находить файлы и строки с find, grep и регулярными выражениями.','База'],['pipes','Потоки и конвейеры','ordinary','Соединять stdin/stdout/stderr, перенаправлять вывод и строить пайплайны.','Практика'],['permissions','Права доступа','ordinary','Разбирать chmod, chown, umask и модель rwx.','База'],['users','Пользователи и группы','ordinary','Управлять UID/GID, группами, sudo и системными учётными записями.','Практика'],['processes','Процессы и сигналы','ordinary','Исследовать процессы, PID, сигналы, приоритеты и дерево процессов.','Практика'],['systemd','systemd и службы','ordinary','Управлять units, зависимостями, автозапуском и состоянием служб.','Практика'],['journald','Системные журналы','ordinary','Находить причины ошибок через journalctl и системные логи.','Практика'],['storage','Диски и разделы','ordinary','Читать lsblk, df, du, понимать разделы и заполнение диска.','Практика'],['mount','Файловые системы и mount','ordinary','Работать с mount, fstab, inode и точками монтирования.','Практика'],['packages','Пакетные менеджеры','ordinary','Устанавливать, обновлять и диагностировать пакеты и репозитории.','База'],['bash','Bash-скриптинг','ordinary','Писать скрипты с аргументами, условиями, циклами и функциями.','Автоматизация'],['ssh','SSH и удалённый доступ','ordinary','Настраивать ключи, ssh_config, known_hosts и безопасный доступ.','Практика'],['linux-debug','Диагностика Linux','key','Системно диагностировать отказ службы, процесса, диска или прав доступа.','Ключевой талант'],['linux-perf','Производительность ОС','key','Связывать CPU, память, IO, процессы и системные ограничения.','Ключевой талант'],['linux-master','Linux Production Mastery','master','Самостоятельно разбирать Linux-инциденты по симптомам, измерениям и доказательствам.','Мастерство']
+]},
+{id:'network',title:'NETWORKING',sub:'СЕТИ И ПРОТОКОЛЫ',color:'#78d5a3',angle:45,nodes:[
+['osi','Модель TCP/IP и OSI','ordinary','Разделять проблему по уровням и формулировать проверяемые гипотезы.','База'],['ip','IP-адресация','ordinary','Понимать IPv4/IPv6, маски, CIDR и адресацию узлов.','База'],['subnet','Подсети и CIDR','ordinary','Рассчитывать границы подсетей и понимать сетевую принадлежность адресов.','Практика'],['ethernet','Ethernet и ARP','ordinary','Понимать MAC-адресацию, ARP и соседей локальной сети.','Практика'],['routing','Маршрутизация','ordinary','Читать таблицу маршрутизации и диагностировать неверный маршрут.','Практика'],['dns','DNS-резолвинг','ordinary','Диагностировать цепочку stub resolver, рекурсивного и авторитетного DNS.','Практика'],['tcp','TCP и UDP','ordinary','Понимать handshake, retransmission, timeout, порт и различия TCP/UDP.','База'],['sockets','Сокеты и порты','ordinary','Проверять слушающие сокеты, соединения и доступность порта через ss и nc.','Практика'],['http','HTTP и API','ordinary','Разбирать методы, статусы, заголовки, редиректы и таймауты.','Практика'],['tls','TLS и сертификаты','ordinary','Проверять сертификат, SAN, цепочку доверия, SNI и срок действия.','Практика'],['firewall','Firewall и фильтрация','ordinary','Читать правила nftables и находить блокировки трафика.','Практика'],['nat','NAT и forwarding','ordinary','Понимать SNAT/DNAT, forwarding и путь пакета через шлюз.','Практика'],['proxy','Reverse proxy','ordinary','Настраивать проксирование, заголовки, upstream и таймауты.','Практика'],['balance','Балансировка нагрузки','key','Выбирать health checks, алгоритм балансировки и поведение при отказе backend.','Ключевой талант'],['net-debug','Сетевая диагностика','key','Локализовать отказ между DNS, маршрутом, TCP, TLS и приложением.','Ключевой талант'],['net-master','Network Engineering','master','Проектировать и диагностировать сетевые пути в сложной инфраструктуре.','Мастерство']
+]},
+{id:'git',title:'GIT & COLLABORATION',sub:'ИСТОРИЯ КОДА И КОМАНДНАЯ РАБОТА',color:'#ff9d79',angle:90,nodes:[
+['git-basic','Рабочее дерево Git','ordinary','Использовать status, diff, add и commit для контроля изменений.','База'],['git-history','История и diff','ordinary','Читать log, show, blame и восстанавливать контекст изменений.','База'],['git-branch','Ветки и merge','ordinary','Создавать ветки и интегрировать изменения без потери истории.','Практика'],['git-rebase','Rebase и cherry-pick','ordinary','Переносить коммиты и осознанно переписывать локальную историю.','Практика'],['git-conflict','Разрешение конфликтов','ordinary','Находить конфликтующие изменения и проверять итоговый diff.','Практика'],['git-remote','Remote и upstream','ordinary','Работать с origin, fetch, pull, push и отслеживаемыми ветками.','Практика'],['review','Pull request review','ordinary','Проводить ревью изменений и давать конкретную техническую обратную связь.','Команда'],['tags','Теги и версии','ordinary','Использовать теги и связывать релизы с исходным кодом.','Релизы'],['git-recovery','Восстановление Git','ordinary','Использовать reflog и безопасно восстанавливать потерянные ссылки.','Практика'],['git-flow','Командный workflow','key','Выстроить повторяемый процесс review, merge, release и отката.','Ключевой талант'],['git-master','Collaborative Engineering','master','Поддерживать безопасный процесс изменений в команде и репозиториях.','Мастерство']
+]},
+{id:'code',title:'CODE & AUTOMATION',sub:'PYTHON · SHELL · ФОРМАТЫ ДАННЫХ',color:'#76c9ff',angle:135,nodes:[
+['variables','Переменные и типы','ordinary','Использовать типы, значения, условия и простые функции в Python.','База'],['python-files','Файлы и исключения','ordinary','Читать файлы, обрабатывать исключения и корректно закрывать ресурсы.','Практика'],['python-cli','CLI-утилиты','ordinary','Создавать CLI с аргументами, понятными ошибками и кодами возврата.','Практика'],['api-client','HTTP-клиенты','ordinary','Вызывать API, обрабатывать ответы, таймауты и ошибки соединения.','Практика'],['json-yaml','JSON и YAML','ordinary','Читать, валидировать и генерировать конфигурационные данные.','База'],['regex','Регулярные выражения','ordinary','Извлекать и проверять структурированные данные из текста.','Практика'],['jq','jq и обработка JSON','ordinary','Фильтровать JSON-ответы и строить преобразования данных.','Практика'],['testing','Автоматические тесты','ordinary','Писать unit-тесты, проверки ошибок и тесты граничных условий.','Качество'],['logging','Логирование скриптов','ordinary','Добавлять уровни логов, контекст и понятные диагностические сообщения.','Качество'],['idempotent','Идемпотентные операции','key','Создавать автоматизацию, повторный запуск которой не ломает состояние.','Ключевой талант'],['automation-master','Automation Engineering','master','Проектировать надёжные инструменты автоматизации с тестами и наблюдаемостью.','Мастерство']
+]},
+{id:'cicd',title:'CI / CD',sub:'НЕПРЕРЫВНАЯ ПОСТАВКА',color:'#d2a1ff',angle:180,nodes:[
+['pipeline','Структура pipeline','ordinary','Разделять pipeline на этапы, jobs, зависимости и условия запуска.','База'],['runner','Runners и агенты','ordinary','Понимать среду выполнения, executor, runner labels и изоляцию.','Практика'],['build','Сборка приложения','ordinary','Собирать приложение воспроизводимым способом и фиксировать версии.','Практика'],['ci-test','Тесты в CI','ordinary','Запускать линтеры, unit-тесты и интеграционные проверки в pipeline.','Качество'],['artifact','Артефакты сборки','ordinary','Публиковать и версионировать результаты сборки отдельно от исходников.','Релизы'],['secrets-ci','Секреты CI','ordinary','Передавать токены безопасно и избегать утечки секретов в логах.','Безопасность'],['deploy-strategy','Стратегии деплоя','ordinary','Понимать rolling, blue-green и canary deployment.','Релизы'],['rollback','Откат релиза','ordinary','Планировать rollback и проверять, что предыдущая версия доступна.','Надёжность'],['release-gates','Release gates','ordinary','Блокировать релиз при провале тестов, политик или проверок безопасности.','Качество'],['delivery-key','Воспроизводимый релиз','key','Доставлять проверенный артефакт в окружения с контролируемым продвижением.','Ключевой талант'],['delivery-master','Delivery Engineering','master','Строить безопасную и масштабируемую систему поставки ПО.','Мастерство']
+]},
+{id:'containers',title:'CONTAINERS',sub:'DOCKER · ОБРАЗЫ · СЕТИ',color:'#7ab9ff',angle:225,nodes:[
+['dockerfile','Dockerfile и слои','ordinary','Создавать образы с предсказуемым порядком слоёв и кэшированием.','База'],['build-context','Build context','ordinary','Управлять контекстом сборки и исключать лишние файлы через .dockerignore.','Практика'],['registry','Container registry','ordinary','Публиковать, загружать и идентифицировать образы по тегам и digest.','Практика'],['runtime','Жизненный цикл контейнера','ordinary','Понимать процессы, сигналы, restart policy и exit code контейнера.','Практика'],['volumes','Volumes и bind mounts','ordinary','Выбирать модель хранения данных и управлять правами на томах.','Практика'],['container-network','Сеть контейнеров','ordinary','Диагностировать bridge-сети, DNS контейнеров и публикацию портов.','Практика'],['compose','Docker Compose','ordinary','Описывать многоконтейнерную среду, сети, volumes и healthchecks.','Практика'],['limits','CPU и memory limits','ordinary','Ограничивать ресурсы и диагностировать OOM и throttling.','Надёжность'],['rootless','Безопасность контейнеров','ordinary','Понимать rootless, capabilities, read-only filesystem и запуск без root.','Безопасность'],['container-key','Production Containers','key','Собирать безопасные, компактные и воспроизводимые контейнерные приложения.','Ключевой талант'],['container-master','Container Platform','master','Эксплуатировать контейнерные платформы с учётом сети, хранения и безопасности.','Мастерство']
+]},
+{id:'iac',title:'INFRASTRUCTURE AS CODE',sub:'TERRAFORM · ANSIBLE',color:'#e7ba67',angle:270,nodes:[
+['inventory','Ansible inventory','ordinary','Описывать хосты и группы, переменные и окружения.','База'],['playbook','Playbook и tasks','ordinary','Писать playbook с модулями, условиями и обработкой изменений.','Практика'],['templates','Templates и handlers','ordinary','Генерировать конфиги через templates и перезапускать службы по изменению.','Практика'],['roles','Ansible roles','ordinary','Разделять автоматизацию на повторно используемые роли и коллекции.','Практика'],['terraform-provider','Terraform providers','ordinary','Настраивать providers и понимать связь конфигурации с API провайдера.','База'],['resources','Resources и data sources','ordinary','Описывать ресурсы и читать существующие объекты через data sources.','Практика'],['variables-tf','Variables и outputs','ordinary','Параметризовать конфигурацию и передавать результаты между модулями.','Практика'],['state','Terraform state','ordinary','Понимать state, locking, backend и последствия ручного изменения ресурсов.','Практика'],['modules','Повторно используемые модули','ordinary','Создавать модули с понятными входами, выходами и версиями.','Практика'],['drift','Plan и drift detection','ordinary','Сравнивать желаемое состояние с фактическим до применения изменений.','Надёжность'],['iac-key','Воспроизводимая инфраструктура','key','Безопасно создавать и изменять инфраструктуру через reviewable-код.','Ключевой талант'],['iac-master','Infrastructure Engineering','master','Строить управляемую инфраструктуру с повторным использованием и контролем изменений.','Мастерство']
+]},
+{id:'k8s',title:'KUBERNETES',sub:'ОРКЕСТРАЦИЯ И ПЛАТФОРМА',color:'#70c7dc',angle:315,nodes:[
+['pod','Pod и контейнеры','ordinary','Понимать Pod как минимальную единицу запуска в Kubernetes.','База'],['deployment','Deployment и ReplicaSet','ordinary','Управлять декларативными обновлениями и количеством реплик.','Практика'],['service','Service и cluster DNS','ordinary','Обеспечивать стабильный доступ к Pod через Service и DNS.','Практика'],['configmap','ConfigMap и Secret','ordinary','Отделять конфигурацию от образа и понимать ограничения Kubernetes Secret.','Практика'],['probes','Health probes','ordinary','Настраивать startup, readiness и liveness probes без ложных рестартов.','Практика'],['resources-k8s','Requests и limits','ordinary','Настраивать ресурсы Pod и диагностировать Pending, OOMKilled и throttling.','Практика'],['ingress','Ingress и Gateway','ordinary','Организовывать входящий HTTP-трафик, TLS и маршрутизацию.','Сеть'],['storage-k8s','PV, PVC и StorageClass','ordinary','Подключать постоянное хранилище и понимать жизненный цикл тома.','Хранение'],['rbac','RBAC и service accounts','ordinary','Ограничивать права пользователей и workloads через Kubernetes RBAC.','Безопасность'],['helm','Helm charts','ordinary','Параметризовать релизы, values и шаблоны Helm.','Практика'],['network-policy','NetworkPolicy','ordinary','Ограничивать сетевые потоки между namespace и Pod.','Безопасность'],['k8s-debug','Диагностика кластера','key','Разбирать события, логи, probes, DNS и scheduling при отказе workloads.','Ключевой талант'],['k8s-master','Kubernetes Operations','master','Эксплуатировать кластер с обновлениями, доступом, ресурсами и восстановлением.','Мастерство']
+]},
+{id:'cloud',title:'CLOUD & PLATFORMS',sub:'ОБЛАЧНАЯ ИНФРАСТРУКТУРА',color:'#77c7f0',angle:360,nodes:[
+['iam','Cloud IAM','ordinary','Использовать роли и временные полномочия вместо долгоживущих ключей.','Безопасность'],['vpc','VPC и виртуальная сеть','ordinary','Проектировать адресные диапазоны, подсети и сетевые границы.','Сеть'],['cloud-routes','Cloud routing','ordinary','Настраивать таблицы маршрутов и пути между сетевыми сегментами.','Сеть'],['security-groups','Security groups','ordinary','Ограничивать входящий и исходящий трафик облачных ресурсов.','Безопасность'],['compute','Compute instances','ordinary','Создавать и диагностировать виртуальные машины и их загрузку.','База'],['object-storage','Object storage','ordinary','Работать с bucket policy, версиями, lifecycle и доступом к объектам.','Хранение'],['managed-db','Managed databases','ordinary','Подключать управляемые базы, сети, резервные копии и параметры доступа.','Данные'],['cloud-lb','Cloud load balancer','ordinary','Публиковать сервисы через облачную балансировку и health checks.','Сеть'],['autoscaling','Autoscaling','ordinary','Настраивать масштабирование по метрикам и ограничениям мощности.','Надёжность'],['cloud-key','Cloud Architecture','key','Собирать безопасную архитектуру из сетей, IAM, вычислений и managed-сервисов.','Ключевой талант'],['cloud-master','Cloud Engineering','master','Проектировать облачные платформы с контролем доступа, надёжности и стоимости.','Мастерство']
+]},
+{id:'observe',title:'OBSERVABILITY',sub:'ЛОГИ · МЕТРИКИ · ТРЕЙСЫ',color:'#82d7a5',angle:405,nodes:[
+['logs','Структурированные логи','ordinary','Создавать пригодные для поиска логи с временем, уровнем и контекстом.','База'],['metrics','Метрики и labels','ordinary','Выбирать измерения и избегать взрывного роста cardinality.','База'],['prometheus','Prometheus targets','ordinary','Настраивать scrape, exporters и обнаружение целей мониторинга.','Практика'],['promql','PromQL','ordinary','Строить запросы для rate, агрегаций и анализа временных рядов.','Практика'],['grafana','Grafana dashboards','ordinary','Создавать панели, которые помогают отвечать на конкретные вопросы.','Практика'],['alerts','Алерты и маршрутизация','ordinary','Настраивать actionable alerts, группировку и маршруты уведомлений.','Практика'],['loki','Агрегация логов','ordinary','Искать логи централизованно и связывать их с метками сервиса.','Практика'],['tracing','Distributed tracing','ordinary','Читать spans и искать задержки в цепочках межсервисных вызовов.','Практика'],['otel','OpenTelemetry','ordinary','Инструментировать приложения и передавать телеметрию в backend.','Практика'],['sli','SLI и SLO','ordinary','Определять измеримые индикаторы и целевые уровни надёжности сервиса.','Надёжность'],['error-budget','Error budget','key','Связывать ошибки надёжности с решениями о темпе релизов.','Ключевой талант'],['obs-key','Диагностика по телеметрии','key','Сопоставлять логи, метрики и трейсы для локализации первопричины.','Ключевой талант'],['sre-master','Site Reliability Engineering','master','Управлять надёжностью через SLO, автоматизацию, инциденты и error budgets.','Мастерство']
+]},
+{id:'security',title:'SECURITY',sub:'DEVSECOPS · ЗАЩИТА СИСТЕМ',color:'#ff8f91',angle:450,nodes:[
+['least-privilege','Least privilege','ordinary','Выдавать только минимально необходимые разрешения.','База'],['sudo-pam','sudo и PAM','ordinary','Настраивать делегирование привилегий и механизмы аутентификации Linux.','Практика'],['ssh-hardening','SSH hardening','ordinary','Отключать небезопасные варианты доступа и ограничивать привилегированные входы.','Практика'],['secret-store','Хранилища секретов','ordinary','Управлять секретами, доступом, ротацией и сроком жизни credentials.','Практика'],['tls-sec','Сертификаты и TLS','ordinary','Управлять цепочками доверия, выпуском и ротацией сертификатов.','Практика'],['image-scan','Сканирование образов','ordinary','Обнаруживать уязвимости базовых образов и зависимостей.','Практика'],['sbom','SBOM и provenance','ordinary','Формировать состав артефакта и проверять происхождение сборки.','Supply chain'],['deps','Зависимости и CVE','ordinary','Оценивать уязвимости зависимостей и планировать обновления.','Supply chain'],['audit','Аудит и события безопасности','ordinary','Сохранять и анализировать события доступа и привилегированных действий.','Практика'],['policy','Политики и admission','ordinary','Применять политики безопасности к конфигурациям и workload.','Практика'],['security-key','Security by Design','key','Встраивать контроль доступа, секретов и supply-chain проверок в delivery-процесс.','Ключевой талант'],['devsecops','DevSecOps','master','Интегрировать безопасность в разработку, поставку и эксплуатацию.','Мастерство']
+]},
+{id:'reliability',title:'SRE & OPERATIONS',sub:'НАДЁЖНОСТЬ И ИНЦИДЕНТЫ',color:'#e9c36f',angle:495,nodes:[
+['backup','Резервное копирование','ordinary','Определять данные, частоту, хранение и контроль успешности backup.','База'],['restore','Проверка восстановления','ordinary','Регулярно проверять восстановление из резервной копии.','Практика'],['rpo-rto','RPO и RTO','ordinary','Определять допустимую потерю данных и время восстановления.','Надёжность'],['ha','Высокая доступность','ordinary','Убирать единичные точки отказа и понимать режимы деградации.','Надёжность'],['replication','Репликация данных','ordinary','Понимать задержки репликации, failover и ограничения консистентности.','Данные'],['capacity','Capacity planning','ordinary','Оценивать потребление ресурсов, рост и запас мощности.','Практика'],['loadtest','Нагрузочное тестирование','ordinary','Измерять throughput, latency и поведение при росте нагрузки.','Практика'],['incident','Incident response','ordinary','Классифицировать инцидент, назначать роли и вести коммуникацию.','Практика'],['rca','Root Cause Analysis','ordinary','Строить причинную цепочку на основе доказательств, а не догадок.','Практика'],['postmortem','Blameless postmortem','ordinary','Фиксировать вклад системы, действия по снижению риска и владельцев.','Практика'],['reliability-key','Production Reliability','key','Соединять резервирование, восстановление, мониторинг и процесс реагирования.','Ключевой талант'],['platform','Platform Engineering','master','Создавать внутреннюю платформу, упрощающую безопасную поставку и эксплуатацию.','Мастерство']
+]}
+];
+const nodes=[],edges=[],clusters=[];
+const cx=900,cy=700;
+const clusterAngles=[-135,-95,-55,-15,25,65,105,145,185,225,265,305];
+const radius=445;
+domains.forEach((d,di)=>{
+ const angle=(clusterAngles[di]??di*30)*Math.PI/180;
+ const ccx=cx+Math.cos(angle)*radius, ccy=cy+Math.sin(angle)*radius;
+ const cluster={id:d.id,title:d.title,sub:d.sub,color:d.color,x:ccx,y:ccy,angle};clusters.push(cluster);
+ const count=d.nodes.length;
+ const ringR= count>=12?118:105;
+ d.nodes.forEach((raw,i)=>{
+   const [id,name,type,desc,tag]=raw;
+   const a=(-Math.PI/2)+(i/count)*Math.PI*2;
+   const rr=ringR+(i%3===0?12:0);
+   const x=ccx+Math.cos(a)*rr,y=ccy+Math.sin(a)*rr;
+   nodes.push({id,name,type,desc,tag,domain:d.id,color:d.color,x,y,order:i,requires:[]});
+   if(i>0)edges.push({from:d.nodes[i-1][0],to:id,type:'path'});
+ });
+ // Connect first ordinary node to central hub and final progression into central path
+ edges.push({from:'core',to:d.nodes[0][0],type:'path'});
+ // ring spine creates branching route with a few cross-links for a skill-tree feel
+ if(count>4){for(let i=0;i<count-2;i+=3)edges.push({from:d.nodes[i][0],to:d.nodes[i+2][0],type:'branch'});}
+ if(count>8)edges.push({from:d.nodes[2][0],to:d.nodes[6][0],type:'branch'});
+});
+nodes.push({id:'core',name:'Ядро DevOps',type:'core',desc:'Стартовая точка. Изучай основы и выбирай путь через системное администрирование, сети, разработку, автоматизацию и production-инженерию.',tag:'Старт',domain:'core',color:'#e6c47d',x:cx,y:cy,order:0,requires:[]});
+// Link related cross-specialties explicitly. Edges are concrete learning prerequisites, not decoration.
+const cross=[
+['shell','bash'],['processes','systemd'],['journald','logs'],['ssh','ssh-hardening'],['routing','container-network'],['dns','service'],['http','proxy'],['tls','tls-sec'],['git-branch','pipeline'],['git-flow','delivery-key'],['python-cli','idempotent'],['json-yaml','templates'],['testing','ci-test'],['build','dockerfile'],['artifact','registry'],['delivery-key','container-key'],['container-network','pod'],['compose','pod'],['rbac','least-privilege'],['network-policy','firewall'],['terraform-provider','vpc'],['iac-key','cloud-key'],['prometheus','metrics'],['alerts','incident'],['obs-key','rca'],['error-budget','reliability-key'],['secret-store','secrets-ci'],['image-scan','release-gates'],['restore','rpo-rto'],['postmortem','platform'],['k8s-debug','sre-master'],['cloud-lb','balance'],['modules','iac-key'],['net-debug','k8s-debug'],['linux-debug','incident'],['git-recovery','rollback'],['automation-master','iac-key'],['security-key','delivery-key']
+];
+cross.forEach(([from,to])=>{if(nodes.some(n=>n.id===from)&&nodes.some(n=>n.id===to))edges.push({from,to,type:'cross'});});
+const nodeById=Object.fromEntries(nodes.map(n=>[n.id,n]));
+nodes.forEach(n=>n.requires=edges.filter(e=>e.to===n.id&&e.type!=='cross').map(e=>e.from).filter(id=>id!=='core'));
+const STORAGE='path-of-devops-v1';
+let allocated=new Set(['core']);
+try{const saved=JSON.parse(localStorage.getItem(STORAGE)||'[]');saved.forEach(id=>{if(nodeById[id])allocated.add(id)});}catch{}
+let selected='core',zoom=1,panX=0,panY=0,drag=null,toastTimer;
+const svg=document.getElementById('tree'),world=document.getElementById('mapworld'),viewport=document.getElementById('viewport');
+const NS='http://www.w3.org/2000/svg';
+function el(tag,attrs={},text){const e=document.createElementNS(NS,tag);Object.entries(attrs).forEach(([k,v])=>e.setAttribute(k,v));if(text!==undefined)e.textContent=text;return e}
+function svgTextLines(parent,x,y,text,cls){const t=el('text',{x,y,class:cls},text);parent.appendChild(t);return t}
+function render(){
+ world.replaceChildren();
+ const bg=el('circle',{cx,cy,r:590,fill:'none',stroke:'#202b40','stroke-width':1,'stroke-dasharray':'2 12'});world.appendChild(bg);
+ clusters.forEach(c=>{
+  world.appendChild(el('circle',{cx:c.x,cy:c.y,r:160,class:'cluster-ring',stroke:c.color,opacity:.8}));
+  world.appendChild(el('circle',{cx:c.x,cy:c.y,r:148,fill:'none',stroke:c.color,'stroke-width':.6,opacity:.35}));
+  svgTextLines(world,c.x,c.y-175,c.title,'cluster-title').setAttribute('fill',c.color);
+  svgTextLines(world,c.x,c.y-156,c.sub,'cluster-sub');
+ });
+ const edgeLayer=el('g',{id:'edges'}),nodeLayer=el('g',{id:'nodes'});
+ edges.forEach(e=>{
+   const a=nodeById[e.from],b=nodeById[e.to];if(!a||!b)return;
+   const dx=b.x-a.x,dy=b.y-a.y,dist=Math.max(1,Math.hypot(dx,dy));
+   const bend=e.type==='cross'?Math.min(42,dist*.12):0;
+   const mx=(a.x+b.x)/2+(e.type==='cross'?-dy/dist*bend:0),my=(a.y+b.y)/2+(e.type==='cross'?dx/dist*bend:0);
+   const path=el('path',{d:'M '+a.x+' '+a.y+' Q '+mx+' '+my+' '+b.x+' '+b.y,class:'edge '+(e.type==='cross'?'cross':'')+' '+(e.type==='path'?'major':'')+'', 'data-from':e.from,'data-to':e.to});
+   edgeLayer.appendChild(path);
+ });
+ nodes.forEach(n=>{
+  const g=el('g',{class:'node '+n.type,'data-id':n.id,tabindex:0,role:'button','aria-label':n.name});
+  const r=n.type==='core'?37:n.type==='master'?23:n.type==='key'?18:12;
+  g.appendChild(el('circle',{cx:n.x,cy:n.y,r:r+8,class:'halo',stroke:n.color}));
+  if(n.type==='master'){
+   g.appendChild(el('circle',{cx:n.x,cy:n.y,r:r+5,fill:'none',stroke:n.color,'stroke-width':1,opacity:.65}));
+   const pts=[];for(let i=0;i<8;i++){const a=i*Math.PI/4-Math.PI/8;pts.push((n.x+Math.cos(a)*(r+2))+','+(n.y+Math.sin(a)*(r+2)));}
+   g.appendChild(el('polygon',{points:pts.join(' '),fill:'#101523',stroke:n.color,'stroke-width':2}));
+  }else if(n.type==='key'){
+   g.appendChild(el('polygon',{points:Array.from({length:6},(_,i)=>{const a=i*Math.PI/3;return (n.x+Math.cos(a)*(r+1))+','+(n.y+Math.sin(a)*(r+1))}).join(' '),fill:'#121b2b',stroke:n.color,'stroke-width':1.3}));
+  }
+  g.appendChild(el('circle',{cx:n.x,cy:n.y,r,class:'orb'}));
+  g.appendChild(el('circle',{cx:n.x,cy:n.y,r:Math.max(3,r*.3),class:'core'}));
+  if(n.type==='core'){svgTextLines(g,n.x,n.y+4,'P','glyph');svgTextLines(g,n.x,n.y+56,'DEVOPS','label');}
+  else{
+    const short=n.name.length>19?n.name.slice(0,18)+'…':n.name;
+    const ly=n.y+r+13;
+    svgTextLines(g,n.x,ly,short,'label');
+  }
+  g.addEventListener('click',()=>selectNode(n.id));
+  g.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();selectNode(n.id)}});
+  g.addEventListener('mouseenter',()=>{document.getElementById('hudSelected').textContent=n.name});
+  g.addEventListener('mouseleave',()=>{document.getElementById('hudSelected').textContent=nodeById[selected].name});
+  nodeLayer.appendChild(g);
+ });
+ world.append(edgeLayer,nodeLayer);updateStates();fitView();
+}
+function updateStates(){
+ world.querySelectorAll('.node').forEach(g=>{
+  const n=nodeById[g.dataset.id],isAllocated=allocated.has(n.id),available=n.id==='core'||n.requires.some(id=>allocated.has(id))||edges.some(e=>e.to===n.id&&e.from==='core'&&allocated.has('core'));
+  g.classList.toggle('allocated',isAllocated);g.classList.toggle('available',available&&!isAllocated);g.classList.toggle('locked',!available);g.classList.toggle('selected',n.id===selected);
+ });
+ world.querySelectorAll('.edge').forEach(p=>{p.classList.toggle('unlocked',allocated.has(p.dataset.from)&&allocated.has(p.dataset.to));});
+ document.getElementById('nodeCount').textContent=nodes.length;
+ document.getElementById('pointCount').textContent=Math.max(0,allocated.size-1);
+ document.getElementById('openCount').textContent=nodes.filter(n=>allocated.has(n.id)||edges.some(e=>e.to===n.id&&allocated.has(e.from))).length;
+ document.getElementById('hudPoints').textContent=Math.max(0,allocated.size-1);
+ document.getElementById('progressText').textContent=allocated.size+' из '+nodes.length+' талантов распределено';
+ document.querySelector('#progress i').style.width=(allocated.size/nodes.length*100)+'%';
+}
+function selectNode(id){
+ const n=nodeById[id];if(!n)return;selected=id;
+ const isAllocated=allocated.has(id),requires=n.requires;
+ const prereqs=requires.length?requires.map(x=>nodeById[x]?.name||x):[];
+ const unlocked=id==='core'||edges.some(e=>e.to===id&&allocated.has(e.from));
+ const kind=n.type==='master'?'Мастерский талант':n.type==='key'?'Ключевой талант':n.type==='core'?'Стартовый узел':'Обычный талант';
+ document.getElementById('hudSelected').textContent=n.name;
+ const side=document.getElementById('details');
+ side.innerHTML='';
+ const add=(tag,cls,txt)=>{const e=document.createElement(tag);if(cls)e.className=cls;e.textContent=txt;side.appendChild(e);return e};
+ add('div','eyebrow',n.domain==='core'?'ПАССИВНЫЙ АТЛАС · DEVOPS':n.domain.toUpperCase()+' · ПАССИВНЫЙ АТЛАС');
+ add('div','side-title',n.name);
+ add('div','muted',kind+' · '+n.tag);
+ const tags=add('div','tagrow','');tags.appendChild(Object.assign(document.createElement('span'),{className:'tag '+(n.type==='master'?'purple':'gold'),textContent:kind}));tags.appendChild(Object.assign(document.createElement('span'),{className:'tag',textContent:'ID: '+n.id}));
+ add('p','bodycopy',n.desc);
+ add('div','divider','');
+ add('div','section-title','УСЛОВИЯ ДОСТУПА');
+ if(n.type==='core')add('div','req ok','Стартовый узел доступен всегда.');
+ else if(isAllocated)add('div','req ok','Талант уже распределён в текущем билде.');
+ else if(unlocked)add('div','req ok','Есть соединение с изученным узлом. Можно изучить.');
+ else add('div','req block','Узел пока недоступен: сначала проложи путь от стартового узла.');
+ if(prereqs.length){add('div','section-title','СВЯЗАННЫЕ ПРЕДПОСЫЛКИ');prereqs.slice(0,6).forEach(name=>add('div','req',name));}
+ add('div','section-title','ПРОГРЕСС');add('div','bodycopy',allocated.size+' / '+nodes.length+' узлов изучено');
+ const actions=add('div','side-actions','');
+ if(n.type!=='core'){
+  const b=document.createElement('button');b.className=isAllocated?'danger':'primary';b.textContent=isAllocated?'Снять талант':'Изучить талант';b.disabled=!isAllocated&&!unlocked;
+  b.addEventListener('click',()=>toggleNode(id));actions.appendChild(b);
+ }
+ const focus=document.createElement('button');focus.textContent='К узлу';focus.addEventListener('click',()=>focusNode(n));actions.appendChild(focus);
+ updateStates();
+}
+function toggleNode(id){
+ if(allocated.has(id)){
+  const descendants=new Set([id]);let changed=true;
+  while(changed){changed=false;edges.forEach(e=>{if(descendants.has(e.from)&&allocated.has(e.to)&&e.to!=='core'&&!Array.from(edges).some(x=>x.to===e.to&&allocated.has(x.from)&&!descendants.has(x.from))){descendants.add(e.to);changed=true}})}
+  descendants.forEach(x=>{if(x!=='core')allocated.delete(x)});
+ }else{
+  const connected=edges.some(e=>e.to===id&&allocated.has(e.from));
+  if(!connected){showToast('Сначала открой путь к этому таланту.');return}
+  allocated.add(id);
+ }
+ try{localStorage.setItem(STORAGE,JSON.stringify([...allocated]));}catch{}
+ updateStates();selectNode(id);
+}
+function fitView(){
+ const w=viewport.clientWidth,h=viewport.clientHeight;if(!w||!h)return;
+ const scale=Math.min(w/1800,h/1400)*.94;zoom=scale;panX=(w-1800*zoom)/2;panY=(h-1400*zoom)/2;applyTransform();
+}
+function applyTransform(){world.setAttribute('transform','translate('+panX+' '+panY+') scale('+zoom+')');}
+function focusNode(n){const w=viewport.clientWidth,h=viewport.clientHeight;zoom=Math.max(zoom,Math.min(w/900,h/700));panX=w/2-n.x*zoom;panY=h/2-n.y*zoom;applyTransform();}
+function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>t.classList.remove('show'),2200);}
+document.getElementById('zoomIn').onclick=()=>{zoom=Math.min(2.5,zoom*1.18);applyTransform()};
+document.getElementById('zoomOut').onclick=()=>{zoom=Math.max(.22,zoom/1.18);applyTransform()};
+document.getElementById('centerView').onclick=()=>{panX=viewport.clientWidth/2-cx*zoom;panY=viewport.clientHeight/2-cy*zoom;applyTransform()};
+document.getElementById('resetView').onclick=fitView;
+document.getElementById('resetBuild').onclick=()=>{allocated=new Set(['core']);try{localStorage.removeItem(STORAGE)}catch{}updateStates();selectNode('core');showToast('Билд сброшен.')};
+document.getElementById('startPath').onclick=()=>{const n=nodes.find(n=>n.id!=='core'&&edges.some(e=>e.to===n.id&&allocated.has(e.from)));if(n){selectNode(n.id);focusNode(n)}else showToast('Выбери любую стартовую ветку на карте.')};
+document.getElementById('search').addEventListener('input',e=>{
+ const q=e.target.value.trim().toLocaleLowerCase('ru');
+ world.querySelectorAll('.node').forEach(g=>{const n=nodeById[g.dataset.id];g.classList.toggle('filtered',!!q&&!((n.name+' '+n.desc+' '+n.id+' '+n.domain).toLocaleLowerCase('ru').includes(q)));});
+ if(q){const n=nodes.find(n=>(n.name+' '+n.desc+' '+n.id+' '+n.domain).toLocaleLowerCase('ru').includes(q));if(n){selectNode(n.id);focusNode(n)}}
+});
+viewport.addEventListener('pointerdown',e=>{if(e.target.closest('.node'))return;drag={x:e.clientX,y:e.clientY,px:panX,py:panY};viewport.classList.add('dragging');viewport.setPointerCapture(e.pointerId)});
+viewport.addEventListener('pointermove',e=>{if(!drag)return;panX=drag.px+e.clientX-drag.x;panY=drag.py+e.clientY-drag.y;applyTransform()});
+function endDrag(){drag=null;viewport.classList.remove('dragging')}viewport.addEventListener('pointerup',endDrag);viewport.addEventListener('pointercancel',endDrag);
+viewport.addEventListener('wheel',e=>{e.preventDefault();const rect=viewport.getBoundingClientRect(),mx=e.clientX-rect.left,my=e.clientY-rect.top,old=zoom;zoom=Math.max(.22,Math.min(2.5,zoom*(e.deltaY<0?1.1:.9)));panX=mx-(mx-panX)*zoom/old;panY=my-(my-panY)*zoom/old;applyTransform()},{passive:false});
+window.addEventListener('resize',()=>{if(zoom<.4)fitView()});
+render();selectNode('core');
+</script>
+</body>
+</html>
