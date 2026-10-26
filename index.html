@@ -55,13 +55,13 @@ aside{background:linear-gradient(180deg,#101722,#0b1018);border-left:1px solid #
 </header>
 <main>
 <section id="viewport" aria-label="Интерактивное дерево талантов">
-  <svg id="tree" viewBox="0 0 2600 2200" role="img" aria-label="Дерево пассивных навыков DevOps">
+  <svg id="tree" viewBox="0 0 2600 4500" role="img" aria-label="Дерево пассивных навыков DevOps">
     <defs>
       <radialGradient id="bgGlow"><stop offset="0" stop-color="#26364f" stop-opacity=".72"/><stop offset="1" stop-color="#080b12" stop-opacity="0"/></radialGradient>
       <filter id="glow"><feGaussianBlur stdDeviation="3" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
       <pattern id="stars" width="97" height="83" patternUnits="userSpaceOnUse"><circle cx="12" cy="18" r="1" fill="#8da3c4" opacity=".23"/><circle cx="65" cy="49" r=".8" fill="#d9c08c" opacity=".2"/><circle cx="88" cy="8" r=".7" fill="#fff" opacity=".2"/></pattern>
     </defs>
-    <rect width="2600" height="2200" fill="url(#bgGlow)"/><rect width="2600" height="2200" fill="url(#stars)"/>
+    <rect width="2600" height="4500" fill="url(#bgGlow)"/><rect width="2600" height="4500" fill="url(#stars)"/>
     <g id="mapworld"></g>
   </svg>
   <div id="hud"><div class="pill">Пассивные очки: <strong id="hudPoints">0</strong></div><div class="pill">Выбрано: <strong id="hudSelected">Ядро DevOps</strong></div></div>
@@ -136,40 +136,29 @@ const domains = [
 ]}
 ];
 const nodes=[],edges=[],clusters=[];
-const cx=1300,cy=1100;
-// The tree follows one continuous campaign route, laid out as a readable serpentine path.
-const stageCells=[
- {x:430,y:1880},{x:1300,y:1880},{x:2170,y:1880},
- {x:2170,y:1320},{x:1300,y:1320},{x:430,y:1320},
- {x:430,y:760},{x:1300,y:760},{x:2170,y:760},
- {x:2170,y:250},{x:1300,y:250},{x:430,y:250}
-];
+const cx=1300,cy=4250;
+const laneLeft=350,laneRight=2250,rowGap=330;
+// A single connected campaign route, snaking from the starting point at the bottom
+// through each discipline. Side links are optional branches, not isolated islands.
 domains.forEach((d,di)=>{
- const cell=stageCells[di]||{x:1300,y:1100};
- const cluster={id:d.id,title:d.title,sub:d.sub,color:d.color,x:cell.x,y:cell.y,angle:0};clusters.push(cluster);
  const count=d.nodes.length;
- const left=cell.x-340, right=cell.x+340, top=cell.y-42, bottom=cell.y+82;
- const topCount=Math.ceil(count/2), bottomCount=count-topCount;
+ const y=3950-di*rowGap;
+ const forward=di%2===0;
+ const step=(laneRight-laneLeft)/Math.max(1,count-1);
+ const cluster={id:d.id,title:d.title,sub:d.sub,color:d.color,x:1300,y:y-86,angle:0};clusters.push(cluster);
  d.nodes.forEach((raw,i)=>{
    const [id,name,type,desc,tag]=raw;
-   let x,y;
-   if(i<topCount){
-     x=topCount===1?cell.x:left+i*((right-left)/(topCount-1));
-     y=top;
-   }else{
-     const j=i-topCount;
-     x=bottomCount===1?cell.x:right-j*((right-left)/(bottomCount-1));
-     y=bottom;
-   }
+   const x=forward?laneLeft+i*step:laneRight-i*step;
    nodes.push({id,name,type,desc,tag,domain:d.id,color:d.color,x,y,order:i,requires:[]});
    if(i>0)edges.push({from:d.nodes[i-1][0],to:id,type:'path'});
  });
- // Each mastery node unlocks the next stage, forming a single continuous campaign.
+ // Mastery node at the end of one lane leads directly into the next lane.
  if(di===0)edges.push({from:'core',to:d.nodes[0][0],type:'path'});
  if(di>0)edges.push({from:domains[di-1].nodes[domains[di-1].nodes.length-1][0],to:d.nodes[0][0],type:'path'});
+ if(count>8){for(let i=2;i<count-2;i+=5)edges.push({from:d.nodes[i][0],to:d.nodes[i+1][0],type:'branch'});}
 });
-nodes.push({id:'core',name:'Ядро DevOps',type:'core',desc:'Стартовая точка кампании. Освой основы, пройди последовательные этапы и постепенно открой путь к production-инженерии.',tag:'Старт',domain:'core',color:'#e6c47d',x:90,y:2020,order:0,requires:[]});
-// A few optional links connect relevant specializations without turning the whole map into a web.
+nodes.push({id:'core',name:'Ядро DevOps',type:'core',desc:'Стартовая точка. Иди по непрерывному маршруту: от основ Linux через сети, Git, автоматизацию и контейнеры к CI/CD, инфраструктуре и production.',tag:'Старт',domain:'core',color:'#e6c47d',x:laneLeft,y:cy,order:0,requires:[]});
+// A small number of meaningful links connect related branches.
 const cross=[
 ['shell','bash'],['processes','systemd'],['journald','logs'],['ssh','ssh-hardening'],
 ['http','proxy'],['tls','tls-sec'],['git-branch','pipeline'],['python-cli','idempotent'],
@@ -312,7 +301,7 @@ document.getElementById('search').addEventListener('input',e=>{
 viewport.addEventListener('pointerdown',e=>{if(e.target.closest('.node'))return;drag={x:e.clientX,y:e.clientY,px:panX,py:panY};viewport.classList.add('dragging');viewport.setPointerCapture(e.pointerId)});
 viewport.addEventListener('pointermove',e=>{if(!drag)return;panX=drag.px+e.clientX-drag.x;panY=drag.py+e.clientY-drag.y;applyTransform()});
 function endDrag(){drag=null;viewport.classList.remove('dragging')}viewport.addEventListener('pointerup',endDrag);viewport.addEventListener('pointercancel',endDrag);
-viewport.addEventListener('wheel',e=>{e.preventDefault();const rect=viewport.getBoundingClientRect();const unit=Math.min(rect.width/2600,rect.height/2200);const mx=(e.clientX-rect.left-Math.max(0,(rect.width-2600*unit)/2))/unit;const my=(e.clientY-rect.top-Math.max(0,(rect.height-2200*unit)/2))/unit;const old=zoom;zoom=Math.max(.22,Math.min(2.5,zoom*(e.deltaY<0?1.1:.9)));panX=mx-(mx-panX)*zoom/old;panY=my-(my-panY)*zoom/old;applyTransform()},{passive:false});
+viewport.addEventListener('wheel',e=>{e.preventDefault();const rect=viewport.getBoundingClientRect();const unit=Math.min(rect.width/2600,rect.height/4500);const mx=(e.clientX-rect.left-Math.max(0,(rect.width-2600*unit)/2))/unit;const my=(e.clientY-rect.top-Math.max(0,(rect.height-4500*unit)/2))/unit;const old=zoom;zoom=Math.max(.22,Math.min(2.5,zoom*(e.deltaY<0?1.1:.9)));panX=mx-(mx-panX)*zoom/old;panY=my-(my-panY)*zoom/old;applyTransform()},{passive:false});
 window.addEventListener('resize',()=>{if(zoom<.4)fitView()});
 render();selectNode('core');
 </script>
