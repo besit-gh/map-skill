@@ -29,7 +29,7 @@ main{min-height:0;display:grid;grid-template-columns:minmax(0,1fr) 320px;positio
 .node .glyph{font:12px ui-sans-serif,system-ui;font-weight:700;fill:#f0d9a4;stroke:none}
 .node.ordinary .orb{stroke:#83a7ce}.node.key .orb{stroke:#e3b75f;stroke-width:2.5}.node.master .orb{stroke:#d49bff;stroke-width:3}.node.master .core{fill:#d7a3ff}
 .node.allocated .orb{fill:#4c3a1d;stroke:#ffe3a0;filter:drop-shadow(0 0 5px #e4b65d)}.node.available .orb{stroke:#b7e6ff;filter:drop-shadow(0 0 5px #65baff)}.node.locked{opacity:.53}.node.selected .halo{opacity:1;stroke:#fff4c6;filter:drop-shadow(0 0 7px #fff0a0)}.node.selected .orb{stroke:#fff1b5;stroke-width:3}
-.node.filtered{opacity:.09;pointer-events:none}.node text.label{font-size:10px;opacity:.86}.node.master text.label{font-size:11px;font-weight:700}
+.node.filtered{opacity:.09;pointer-events:none}.node text.label{font-size:10px;opacity:0;transition:opacity .12s}.node:hover text.label,.node.selected text.label,.node.key text.label,.node.master text.label{opacity:.96}.node.master text.label{font-size:11px;font-weight:700}
 #hud{position:absolute;left:14px;top:14px;display:flex;gap:8px;align-items:center;pointer-events:none}.pill{background:#0b111bdc;border:1px solid #34445e;padding:7px 10px;border-radius:6px;color:#aab8cc;font-size:11px;backdrop-filter:blur(6px)}.pill strong{color:#f0d59e}
 #mapcontrols{position:absolute;bottom:14px;left:14px;display:flex;gap:6px}.maphelp{position:absolute;bottom:18px;left:50%;transform:translateX(-50%);color:#77869d;font-size:11px;white-space:nowrap;pointer-events:none}
 #legend{position:absolute;top:14px;right:14px;width:188px;background:#0b111be8;border:1px solid #34435b;border-radius:8px;padding:12px;box-shadow:0 10px 30px #0005;pointer-events:none}.legendtitle{font:700 12px Georgia,serif;letter-spacing:1.6px;color:#ecd8ae;margin-bottom:9px}.legendrow{display:flex;align-items:center;gap:9px;color:#aab8cc;font-size:11px;margin:8px 0}.sample{width:18px;height:18px;display:inline-grid;place-items:center;flex:none;border-radius:50%;background:#111c2d;border:2px solid #83a7ce}.sample.key{width:22px;height:22px;border:3px double #e3b75f}.sample.master{width:26px;height:26px;border:3px solid #d49bff;box-shadow:0 0 9px #b87bff50}.sample.line{height:0;width:22px;border:0;border-top:2px solid #e3b75f;border-radius:0;background:none}.sample.dash{height:0;width:22px;border:0;border-top:2px dashed #8b9db9;border-radius:0;background:none}
@@ -55,13 +55,13 @@ aside{background:linear-gradient(180deg,#101722,#0b1018);border-left:1px solid #
 </header>
 <main>
 <section id="viewport" aria-label="Интерактивное дерево талантов">
-  <svg id="tree" viewBox="0 0 1800 1400" role="img" aria-label="Дерево пассивных навыков DevOps">
+  <svg id="tree" viewBox="0 0 2600 2200" role="img" aria-label="Дерево пассивных навыков DevOps">
     <defs>
       <radialGradient id="bgGlow"><stop offset="0" stop-color="#26364f" stop-opacity=".72"/><stop offset="1" stop-color="#080b12" stop-opacity="0"/></radialGradient>
       <filter id="glow"><feGaussianBlur stdDeviation="3" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
       <pattern id="stars" width="97" height="83" patternUnits="userSpaceOnUse"><circle cx="12" cy="18" r="1" fill="#8da3c4" opacity=".23"/><circle cx="65" cy="49" r=".8" fill="#d9c08c" opacity=".2"/><circle cx="88" cy="8" r=".7" fill="#fff" opacity=".2"/></pattern>
     </defs>
-    <rect width="1800" height="1400" fill="url(#bgGlow)"/><rect width="1800" height="1400" fill="url(#stars)"/>
+    <rect width="2600" height="2200" fill="url(#bgGlow)"/><rect width="2600" height="2200" fill="url(#stars)"/>
     <g id="mapworld"></g>
   </svg>
   <div id="hud"><div class="pill">Пассивные очки: <strong id="hudPoints">0</strong></div><div class="pill">Выбрано: <strong id="hudSelected">Ядро DevOps</strong></div></div>
@@ -136,15 +136,15 @@ const domains = [
 ]}
 ];
 const nodes=[],edges=[],clusters=[];
-const cx=900,cy=700;
+const cx=1300,cy=1100;
 const clusterAngles=[-135,-95,-55,-15,25,65,105,145,185,225,265,305];
-const radius=445;
+const radius=790;
 domains.forEach((d,di)=>{
  const angle=(clusterAngles[di]??di*30)*Math.PI/180;
  const ccx=cx+Math.cos(angle)*radius, ccy=cy+Math.sin(angle)*radius;
  const cluster={id:d.id,title:d.title,sub:d.sub,color:d.color,x:ccx,y:ccy,angle};clusters.push(cluster);
  const count=d.nodes.length;
- const ringR= count>=12?118:105;
+ const ringR= count>=12?126:116;
  d.nodes.forEach((raw,i)=>{
    const [id,name,type,desc,tag]=raw;
    const a=(-Math.PI/2)+(i/count)*Math.PI*2;
@@ -279,7 +279,7 @@ function toggleNode(id){
 }
 function fitView(){
  const w=viewport.clientWidth,h=viewport.clientHeight;if(!w||!h)return;
- const scale=Math.min(w/1800,h/1400)*.94;zoom=scale;panX=(w-1800*zoom)/2;panY=(h-1400*zoom)/2;applyTransform();
+ const scale=Math.min(w/2600,h/2200)*.94;zoom=scale;panX=(w-2600*zoom)/2;panY=(h-2200*zoom)/2;applyTransform();
 }
 function applyTransform(){world.setAttribute('transform','translate('+panX+' '+panY+') scale('+zoom+')');}
 function focusNode(n){const w=viewport.clientWidth,h=viewport.clientHeight;zoom=Math.max(zoom,Math.min(w/900,h/700));panX=w/2-n.x*zoom;panY=h/2-n.y*zoom;applyTransform();}
