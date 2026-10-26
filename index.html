@@ -278,15 +278,17 @@ function toggleNode(id){
  updateStates();selectNode(id);
 }
 function fitView(){
- const w=viewport.clientWidth,h=viewport.clientHeight;if(!w||!h)return;
- const scale=Math.min(w/2600,h/2200)*.94;zoom=scale;panX=(w-2600*zoom)/2;panY=(h-2200*zoom)/2;applyTransform();
+ // SVG already scales its 2600x2200 viewBox to the viewport.
+ // Keep pan/zoom in SVG user units; multiplying by CSS pixel dimensions here
+ // caused a second scale and pushed the map out of view on some screens.
+ zoom=.94;panX=(2600-2600*zoom)/2;panY=(2200-2200*zoom)/2;applyTransform();
 }
 function applyTransform(){world.setAttribute('transform','translate('+panX+' '+panY+') scale('+zoom+')');}
-function focusNode(n){const w=viewport.clientWidth,h=viewport.clientHeight;zoom=Math.max(zoom,Math.min(w/900,h/700));panX=w/2-n.x*zoom;panY=h/2-n.y*zoom;applyTransform();}
+function focusNode(n){zoom=Math.max(zoom,1.15);panX=1300-n.x*zoom;panY=1100-n.y*zoom;applyTransform();}
 function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>t.classList.remove('show'),2200);}
 document.getElementById('zoomIn').onclick=()=>{zoom=Math.min(2.5,zoom*1.18);applyTransform()};
 document.getElementById('zoomOut').onclick=()=>{zoom=Math.max(.22,zoom/1.18);applyTransform()};
-document.getElementById('centerView').onclick=()=>{panX=viewport.clientWidth/2-cx*zoom;panY=viewport.clientHeight/2-cy*zoom;applyTransform()};
+document.getElementById('centerView').onclick=()=>{panX=1300-cx*zoom;panY=1100-cy*zoom;applyTransform()};
 document.getElementById('resetView').onclick=fitView;
 document.getElementById('resetBuild').onclick=()=>{allocated=new Set(['core']);try{localStorage.removeItem(STORAGE)}catch{}updateStates();selectNode('core');showToast('Билд сброшен.')};
 document.getElementById('startPath').onclick=()=>{const n=nodes.find(n=>n.id!=='core'&&edges.some(e=>e.to===n.id&&allocated.has(e.from)));if(n){selectNode(n.id);focusNode(n)}else showToast('Выбери любую стартовую ветку на карте.')};
@@ -298,7 +300,7 @@ document.getElementById('search').addEventListener('input',e=>{
 viewport.addEventListener('pointerdown',e=>{if(e.target.closest('.node'))return;drag={x:e.clientX,y:e.clientY,px:panX,py:panY};viewport.classList.add('dragging');viewport.setPointerCapture(e.pointerId)});
 viewport.addEventListener('pointermove',e=>{if(!drag)return;panX=drag.px+e.clientX-drag.x;panY=drag.py+e.clientY-drag.y;applyTransform()});
 function endDrag(){drag=null;viewport.classList.remove('dragging')}viewport.addEventListener('pointerup',endDrag);viewport.addEventListener('pointercancel',endDrag);
-viewport.addEventListener('wheel',e=>{e.preventDefault();const rect=viewport.getBoundingClientRect(),mx=e.clientX-rect.left,my=e.clientY-rect.top,old=zoom;zoom=Math.max(.22,Math.min(2.5,zoom*(e.deltaY<0?1.1:.9)));panX=mx-(mx-panX)*zoom/old;panY=my-(my-panY)*zoom/old;applyTransform()},{passive:false});
+viewport.addEventListener('wheel',e=>{e.preventDefault();const rect=viewport.getBoundingClientRect();const unit=Math.min(rect.width/2600,rect.height/2200);const mx=(e.clientX-rect.left-Math.max(0,(rect.width-2600*unit)/2))/unit;const my=(e.clientY-rect.top-Math.max(0,(rect.height-2200*unit)/2))/unit;const old=zoom;zoom=Math.max(.22,Math.min(2.5,zoom*(e.deltaY<0?1.1:.9)));panX=mx-(mx-panX)*zoom/old;panY=my-(my-panY)*zoom/old;applyTransform()},{passive:false});
 window.addEventListener('resize',()=>{if(zoom<.4)fitView()});
 render();selectNode('core');
 </script>
